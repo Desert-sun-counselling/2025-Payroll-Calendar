@@ -1,0 +1,297 @@
+<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0;
+            padding: 10px;
+            width: 100%;
+            height: 100vh;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .calendar-container { 
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 5px;
+            padding: 5px;
+            height: calc(100vh - 80px); /* Adjust for header and legend */
+        }
+        .month-wrapper {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            height: 100%;
+        }
+        .month {
+            border: 1px solid #ddd;
+            padding: 2px;
+            background: white;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .pp-list {
+            width: 35px;
+            font-size: 9px;
+            margin-right: -1px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .pp-item {
+            flex: 1;
+            line-height: 1;
+            text-align: right;
+            padding-right: 3px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .pp-spacer {
+            height: 24px;
+        }
+        .month-header {
+            background: #2c3e50 !important;
+            color: white;
+            padding: 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            flex: 1;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 1px;
+            text-align: center;
+            height: 1fr;
+        }
+        th {
+            background: #f8f8f8;
+            font-weight: normal;
+        }
+        .pay-period-1 {
+            background-color: #e3f2fd !important;
+        }
+        .pay-period-2 {
+            background-color: #bbdefb !important;
+        }
+        .timecard-due {
+            background-color: #ffe0b2 !important;
+            font-weight: bold;
+        }
+        .pay-date {
+            background-color: #c8e6c9 !important;
+            font-weight: bold;
+        }
+        .legend {
+            margin: 5px 0;
+            padding: 5px;
+            background: #f8f8f8;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        .legend-item {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 3px;
+            vertical-align: middle;
+            border: 1px solid #ddd;
+        }
+        .year-header {
+            text-align: center;
+            font-size: 20px;
+            margin: 5px 0;
+            padding: 5px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        @media print {
+            @page {
+                size: landscape;
+                margin: 0.5cm;
+            }
+            body {
+                padding: 0;
+                height: 100%;
+            }
+            .calendar-container {
+                height: calc(100% - 80px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="year-header">2025 DESERT SUN PAYROLL CALENDAR</div>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #ffe0b2;"></div>
+            Timecard Due Date
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #c8e6c9;"></div>
+            Pay Date
+        </div>
+    </div>
+    <div class="calendar-container" id="calendar"></div>
+
+    <script>
+        // [Previous JavaScript code remains exactly the same]
+        function createCalendar() {
+            const months = [
+                "January", "February", "March", "April",
+                "May", "June", "July", "August",
+                "September", "October", "November", "December"
+            ];
+            const daysInWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+            const container = document.getElementById("calendar");
+            const year = 2025;
+
+            function generatePayPeriods() {
+                const periods = [];
+                let startDate = new Date(2024, 11, 29);
+                
+                for (let i = 0; i < 26; i++) {
+                    const endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 13);
+                    
+                    const timecardDue = new Date(endDate);
+                    timecardDue.setDate(endDate.getDate() + 2);
+                    
+                    const payDate = new Date(timecardDue);
+                    payDate.setDate(timecardDue.getDate() + 4);
+                    
+                    const ppNumber = (i === 25) ? "01" : (i + 2).toString().padStart(2, '0');
+                    
+                    periods.push({
+                        start: startDate,
+                        end: endDate,
+                        timecardDue: timecardDue,
+                        payDate: payDate,
+                        periodNumber: (i % 2) + 1,
+                        ppNumber: ppNumber
+                    });
+                    
+                    startDate = new Date(endDate);
+                    startDate.setDate(endDate.getDate() + 1);
+                }
+                return periods;
+            }
+
+            const payPeriods = generatePayPeriods();
+
+            function isDateInPayPeriod(date) {
+                for (let period of payPeriods) {
+                    if (date >= period.start && date <= period.end) {
+                        return period;
+                    }
+                }
+                return null;
+            }
+
+            months.forEach((monthName, monthIndex) => {
+                const monthWrapper = document.createElement("div");
+                monthWrapper.className = "month-wrapper";
+
+                const ppList = document.createElement("div");
+                ppList.className = "pp-list";
+                const spacer = document.createElement("div");
+                spacer.className = "pp-spacer";
+                ppList.appendChild(spacer);
+
+                const monthDiv = document.createElement("div");
+                monthDiv.className = "month";
+                
+                const monthHeader = document.createElement("div");
+                monthHeader.className = "month-header";
+                monthHeader.textContent = monthName;
+                
+                const table = document.createElement("table");
+                const headerRow = document.createElement("tr");
+                
+                daysInWeek.forEach(day => {
+                    const th = document.createElement("th");
+                    th.textContent = day;
+                    headerRow.appendChild(th);
+                });
+                
+                table.appendChild(headerRow);
+
+                const firstDay = new Date(year, monthIndex, 1);
+                const lastDay = new Date(year, monthIndex + 1, 0);
+                let currentDate = 1;
+                
+                for (let i = 0; i < 6; i++) {
+                    const row = document.createElement("tr");
+                    
+                    for (let j = 0; j < 7; j++) {
+                        const cell = document.createElement("td");
+                        
+                        if (i === 0 && j < firstDay.getDay()) {
+                            cell.textContent = "";
+                        } else if (currentDate > lastDay.getDate()) {
+                            cell.textContent = "";
+                        } else {
+                            const currentDateObj = new Date(year, monthIndex, currentDate);
+                            cell.textContent = currentDate;
+
+                            const period = isDateInPayPeriod(currentDateObj);
+                            if (period) {
+                                cell.classList.add(`pay-period-${period.periodNumber}`);
+                                if (currentDateObj.getTime() === period.end.getTime()) {
+                                    const ppItem = document.createElement("div");
+                                    ppItem.className = "pp-item";
+                                    ppItem.textContent = `PP${period.ppNumber}`;
+                                    ppList.appendChild(ppItem);
+                                }
+                            }
+
+                            payPeriods.forEach(period => {
+                                if (period.timecardDue.getTime() === currentDateObj.getTime()) {
+                                    cell.classList.add('timecard-due');
+                                }
+                                if (period.payDate.getTime() === currentDateObj.getTime()) {
+                                    cell.classList.add('pay-date');
+                                }
+                            });
+
+                            currentDate++;
+                        }
+                        
+                        row.appendChild(cell);
+                    }
+                    
+                    const ppItem = document.createElement("div");
+                    ppItem.className = "pp-item";
+                    ppItem.innerHTML = "&nbsp;";
+                    ppList.appendChild(ppItem);
+                    
+                    table.appendChild(row);
+                    if (currentDate > lastDay.getDate()) break;
+                }
+                
+                monthDiv.appendChild(monthHeader);
+                monthDiv.appendChild(table);
+                monthWrapper.appendChild(ppList);
+                monthWrapper.appendChild(monthDiv);
+                container.appendChild(monthWrapper);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', createCalendar);
+    </script>
+
+
+</body></html>
